@@ -94,20 +94,32 @@ def animar_caminho(tela, mapa, caminho, tamanho_celula, start, amigos, saida, de
     custo_acumulado = 0
     fonte = pygame.font.Font(None, 36)
 
-    for i, passo in enumerate(caminho):
-        custo_acumulado += AStar(mapa).custo_terreno(passo)
+    # Tempo inicial da animação
+    tempo_inicio = pygame.time.get_ticks()
+    i = 0
 
-        desenhar_mapa(tela, mapa, tamanho_celula, start, amigos, saida)
+    while i < len(caminho):
+        for evento in pygame.event.get():
+            if evento.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
 
-        pygame.draw.rect(tela, YELLOW, (passo[1] * tamanho_celula, passo[0] * tamanho_celula, tamanho_celula, tamanho_celula))
+        tempo_atual = pygame.time.get_ticks()
+        if tempo_atual - tempo_inicio >= delay * 1000:
+            passo = caminho[i]
+            custo_acumulado += AStar(mapa).custo_terreno(passo)
 
-        pygame.draw.rect(tela, GRAY, (10, 850, 400, 40))
+            desenhar_mapa(tela, mapa, tamanho_celula, start, amigos, saida)
+            pygame.draw.rect(tela, YELLOW, (passo[1] * tamanho_celula, passo[0] * tamanho_celula, tamanho_celula, tamanho_celula))
 
-        texto_custo = fonte.render(f"Custo acumulado: {custo_acumulado}", True, BLACK)
-        tela.blit(texto_custo, (10, 850))
+            pygame.draw.rect(tela, GRAY, (10, 850, 400, 40))
+            texto_custo = fonte.render(f"Custo acumulado: {custo_acumulado}", True, BLACK)
+            tela.blit(texto_custo, (10, 850))
 
-        pygame.display.flip()
-        pygame.time.wait(int(delay * 1000))
+            pygame.display.flip()
+
+            i += 1
+            tempo_inicio = pygame.time.get_ticks()
 
 def desenhar_mapa(tela, mapa, tamanho_celula, start, amigos, saida):
     """Desenha o mapa, pontos fixos, e tipo de terreno selecionado."""
