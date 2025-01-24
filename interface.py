@@ -51,7 +51,7 @@ def mostrar_opcoes_iniciais():
     pygame.display.set_caption("Fuga do Laboratório - Menu Inicial")
 
     try:
-        background = pygame.image.load("_.jpeg")
+        background = pygame.image.load("imgs/background_principal.jpeg")
         background = pygame.transform.scale(background, (largura, altura))
     except pygame.error:
         print("Erro ao carregar a imagem de fundo. Certifique-se de que 'background.jpg' está no diretório do projeto.")
@@ -197,7 +197,7 @@ def criar_interface():
 
                 elif evento.key == pygame.K_SPACE and start and amigos and saida:
                     # Tela de escolha de visualização
-                    background = pygame.image.load("image6.webp")
+                    background = pygame.image.load("imgs/image6.webp")
                     background = pygame.transform.scale(background, (largura, altura))
                     tela.blit(background, (0, 0))
 
