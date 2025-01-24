@@ -5,14 +5,14 @@ from itertools import permutations
 from aStar import *
 
 # Cores
-WHITE = (255, 255, 255)
-BLACK = (0, 0, 0)
+WHITE = (191, 191, 191)
+BLACK = (89, 89, 89)
 GRAY = (200, 200, 200)
-BLUE = (0, 0, 255)
+BLUE = (84, 141, 212)
 GREEN = (0, 255, 0)
-RED = (255, 0, 0)
+RED = (148, 54, 52)
 YELLOW = (255, 255, 0)
-ORANGE = (255, 165, 0)
+ORANGE = (152, 72, 6)
 PURPLE = (128, 0, 128)
 CYAN = (0, 255, 255)
 
