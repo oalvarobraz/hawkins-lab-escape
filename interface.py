@@ -122,7 +122,6 @@ def animar_caminho(tela, mapa, caminho, tamanho_celula, start, amigos, saida, de
             tempo_inicio = pygame.time.get_ticks()
 
 def desenhar_mapa(tela, mapa, tamanho_celula, start, amigos, saida):
-    """Desenha o mapa, pontos fixos, e tipo de terreno selecionado."""
     linhas, colunas = len(mapa), len(mapa[0])
     for linha in range(linhas):
         for coluna in range(colunas):
@@ -138,7 +137,6 @@ def desenhar_mapa(tela, mapa, tamanho_celula, start, amigos, saida):
         pygame.draw.rect(tela, ORANGE, (saida[1] * tamanho_celula, saida[0] * tamanho_celula, tamanho_celula, tamanho_celula))
 
 def mostrar_custo(tela, custo_total, largura):
-    """Exibe o custo total na parte inferior da tela."""
     fonte = pygame.font.Font(None, 36)
     texto_custo = fonte.render(f"Custo total do caminho: {custo_total}", True, BLACK)
     tela.blit(texto_custo, (largura - texto_custo.get_width() - 10, 850))
@@ -172,37 +170,25 @@ def criar_interface():
 
             elif evento.type == pygame.MOUSEBUTTONDOWN:
                 x, y = evento.pos
-                # Verifica se o clique foi em um botão
-                if verificar_clique_botao(evento.pos, (720, 890), (100, 40)):
+                if verificar_clique_botao(evento.pos, (largura-180, 890), (100, 40)):
                     mapa = [[0 for _ in range(colunas)] for _ in range(linhas)]
                     caminho, custo_total = None, None
 
-                elif verificar_clique_botao(evento.pos, (10, 890), (150, 40)):
+                elif verificar_clique_botao(evento.pos, (30, 890), (150, 40)):
                     criar_interface()
                 
-                elif verificar_clique_botao(evento.pos, ((largura-200)/2, 890), (200, 40)):
+                elif verificar_clique_botao(evento.pos, (170, 890), (200, 40)):
                     mapa = carregar_mapa_txt("mapa.txt")
                     caminho, custo_total = [], None
-
-                # Verifica clique dentro do mapa
-                elif y < 840:
-                    coluna = x // tamanho_celula
-                    linha = y // tamanho_celula
-                    if evento.button == 1:  # Botão esquerdo
-                        mapa[linha][coluna] = tipo_atual
-
-            elif evento.type == pygame.KEYDOWN:
-                if pygame.K_0 <= evento.key <= pygame.K_4:
-                    tipo_atual = evento.key - pygame.K_0
-
-                elif evento.key == pygame.K_SPACE and start and amigos and saida:
-                    # Tela de escolha de visualização
+                
+                elif verificar_clique_botao(evento.pos, (400, 890), (220, 40)):
                     background = pygame.image.load("imgs/image6.webp")
                     background = pygame.transform.scale(background, (largura, altura))
                     tela.blit(background, (0, 0))
 
-                    desenhar_botao(tela, "Permutações", ((largura-300)//2, (altura-200)//2), (300, 50), WHITE, BLACK)
+                    desenhar_botao(tela, "Permutações", ((largura-300)//2, (altura-250)//2), (300, 50), WHITE, BLACK)
                     desenhar_botao(tela, "Heurística", ((largura-300)//2, (altura-100)//2), (300, 50), WHITE, BLACK)
+                    desenhar_botao(tela, "Voltar", ((largura-300)//2, (altura+50)//2), (300, 50), WHITE, BLACK)
                     pygame.display.flip()
 
                     escolha = None
@@ -213,10 +199,12 @@ def criar_interface():
                                 sys.exit()
                             elif evento_prompt.type == pygame.MOUSEBUTTONDOWN:
                                 x, y = evento_prompt.pos
-                                if verificar_clique_botao(evento_prompt.pos, ((largura-300)//2, (altura-200)//2), (300, 50)):
+                                if verificar_clique_botao(evento_prompt.pos, ((largura-300)//2, (altura-250)//2), (300, 50)):
                                     escolha = "permutações"
                                 elif verificar_clique_botao(evento_prompt.pos, ((largura-300)//2, (altura-100)//2), (300, 50)):
                                     escolha = "heurística"
+                                elif verificar_clique_botao(evento_prompt.pos, ((largura-300)//2, (altura+50)//2), (300, 50)):
+                                    escolha = None
 
                     tela.blit(background, (0, 0))
                     if escolha == "permutações":
@@ -248,6 +236,17 @@ def criar_interface():
                             tela.fill(GRAY)
                             animar_caminho(tela, mapa, caminho, tamanho_celula, start, amigos, saida)
 
+                # Verifica clique dentro do mapa
+                elif y < 840:
+                    coluna = x // tamanho_celula
+                    linha = y // tamanho_celula
+                    if evento.button == 1:  # Botão esquerdo
+                        mapa[linha][coluna] = tipo_atual
+
+            elif evento.type == pygame.KEYDOWN:
+                if pygame.K_0 <= evento.key <= pygame.K_4:
+                    tipo_atual = evento.key - pygame.K_0
+
         desenhar_mapa(tela, mapa, tamanho_celula, start, amigos, saida)
         if caminho is None and escolha is not None:
             fonte = pygame.font.Font(None, 36)
@@ -265,9 +264,11 @@ def criar_interface():
         texto = fonte.render(f"Terreno Atual: {TERRENOS[tipo_atual][1]} (Tecla {tipo_atual})", True, BLACK)
         tela.blit(texto, (10, 850))
 
-        desenhar_botao(tela, "Reset", (730, 890), (100, 40), BLUE, WHITE)
-        desenhar_botao(tela, "Carregar Mapa", ((largura-200)/2, 890), (200, 40), PURPLE, WHITE)
-        desenhar_botao(tela, "Menu", (10, 890), (150, 40), ORANGE, WHITE)
+        desenhar_botao(tela, "Menu", (30, 890), (100, 40), BLUE, WHITE)  # Botão "Reset"
+        desenhar_botao(tela, "Carregar Mapa", (170, 890), (200, 40), PURPLE, WHITE)  # Botão "Carregar Mapa"
+        desenhar_botao(tela, "Calcular Caminho", (400, 890), (220, 40), RED, WHITE)  # Botão "Calcular Caminho" ajustado
+        desenhar_botao(tela, "Reset", (largura-180, 890), (150, 40), ORANGE, WHITE)  # Botão "Menu"
+
 
         pygame.display.flip()
     
