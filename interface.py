@@ -3,6 +3,7 @@ import sys
 import heapq
 from itertools import permutations
 from aStar import *
+from graph import Graph
 
 # Cores
 WHITE = (191, 191, 191)
@@ -25,6 +26,11 @@ TERRENOS = {
     4: (BLACK, "Parede"),
 }
 
+LARGURA_TELA = 840
+ALTURA_TELA = 940
+TAMANHO_CELULA = 20
+LINHAS, COLUNAS = 42, 42
+
 def desenhar_botao(tela, texto, posicao, tamanho, cor_base, cor_texto):
     fonte = pygame.font.Font(None, 36)
     pygame.draw.rect(tela, cor_base, (*posicao, *tamanho))
@@ -39,10 +45,132 @@ def verificar_clique_botao(posicao_mouse, posicao_botao, tamanho_botao):
     bw, bh = tamanho_botao
     return bx <= x <= bx + bw and by <= y <= by + bh
 
-def carregar_mapa_txt(caminho_arquivo):
-    with open(caminho_arquivo, 'r') as f:
-        mapa = [list(map(int, linha.strip().split())) for linha in f.readlines()]
-    return mapa
+def carregar_mapa_de_arquivo(caminho_arquivo):
+    try:
+        with open(caminho_arquivo, 'r') as f:
+            linhas = f.readlines()
+        return [[int(char) for char in linha.split()] for linha in linhas]
+    except FileNotFoundError:
+        print(f"Erro: Arquivo '{caminho_arquivo}' não encontrado.")
+        return [[0 for _ in range(COLUNAS)] for _ in range(LINHAS)]
+
+def criar_grafo(mapa, custos):
+    graph = Graph(weight=custos)
+    for i in range(LINHAS):
+        for j in range(COLUNAS):
+            node = (i, j)
+            graph.add_node(node)
+            for di, dj in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+                ni, nj = i + di, j + dj
+                if 0 <= ni < LINHAS and 0 <= nj < COLUNAS:
+                    neighbor = (ni, nj)
+                    graph.add_directed_edge(node, neighbor, custos[mapa[ni][nj]])
+    return graph
+
+def desenhar_mapa(tela, mapa, start, amigos, saida):
+    for i in range(LINHAS):
+        for j in range(COLUNAS):
+            cor, _ = TERRENOS[mapa[i][j]]
+            pygame.draw.rect(tela, cor, (j * TAMANHO_CELULA, i * TAMANHO_CELULA, TAMANHO_CELULA, TAMANHO_CELULA))
+            pygame.draw.rect(tela, GRAY, (j * TAMANHO_CELULA, i * TAMANHO_CELULA, TAMANHO_CELULA, TAMANHO_CELULA), 1)
+
+    if start:
+        pygame.draw.rect(tela, GREEN, (start[1] * TAMANHO_CELULA, start[0] * TAMANHO_CELULA, TAMANHO_CELULA, TAMANHO_CELULA))
+    for amigo in amigos:
+        pygame.draw.rect(tela, CYAN, (amigo[1] * TAMANHO_CELULA, amigo[0] * TAMANHO_CELULA, TAMANHO_CELULA, TAMANHO_CELULA))
+    if saida:
+        pygame.draw.rect(tela, ORANGE, (saida[1] * TAMANHO_CELULA, saida[0] * TAMANHO_CELULA, TAMANHO_CELULA, TAMANHO_CELULA))
+
+def animar_caminho(tela, mapa, caminho, start, amigos, saida, delay=100, custos={0: 1, 1: 3, 2: 6, 3: 4, 4: float('inf')}):
+    custo_acumulado = 0
+    fonte = pygame.font.Font(None, 36)
+
+    for passo in caminho:
+        for evento in pygame.event.get():
+            if evento.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+
+        desenhar_mapa(tela, mapa, start, amigos, saida)
+        pygame.draw.rect(tela, YELLOW, (passo[1] * TAMANHO_CELULA, passo[0] * TAMANHO_CELULA, TAMANHO_CELULA, TAMANHO_CELULA))
+        
+        if passo != start:
+            custo_passo = custos[mapa[passo[0]][passo[1]]]
+            custo_acumulado += custo_passo
+        pygame.draw.rect(tela, GRAY, (10, 850, 400, 40))
+        texto_custo = fonte.render(f"Custo acumulado: {custo_acumulado}", True, BLACK)
+        tela.blit(texto_custo, (10, 850))
+        
+        pygame.display.flip()
+        pygame.time.delay(delay)
+
+def calcular_melhor_rota(graph, pontos, start, goal):
+    astar = AStar(graph)
+    melhor_custo = float('inf')
+    melhor_caminho = []
+
+    for ordem in permutations(pontos):
+        custo_total = 0
+        caminho_total = []
+
+        atual = start
+        for destino in ordem:
+            caminho, custo = astar.search(atual, destino)
+            if caminho is None:
+                custo_total = float('inf')
+                break
+
+            custo_total += custo
+            caminho_total.extend(caminho if not caminho_total else caminho[1:])
+            atual = destino
+
+        caminho_para_saida, custo_saida = astar.search(atual, goal)
+        if caminho_para_saida is None:
+            custo_total = float('inf')
+        else:
+            custo_total += custo_saida
+            caminho_total.extend(caminho_para_saida if not caminho_total else caminho_para_saida[1:])
+
+        if custo_total < melhor_custo:
+            melhor_custo = custo_total
+            melhor_caminho = caminho_total
+
+    return melhor_caminho, melhor_custo
+
+def calcular_heuristica_vizinho_mais_proximo(graph, pontos, start, goal, search_algorithm=AStar):
+    astar = search_algorithm(graph)
+    custo_total = 0
+    caminho_total = []
+    nao_visitados = set(pontos)
+    atual = start
+
+    while nao_visitados:
+        proximo, menor_custo = None, float('inf')
+
+        for destino in nao_visitados:
+            _, custo = astar.search(atual, destino)
+            if custo < menor_custo:
+                menor_custo = custo
+                proximo = destino
+
+        if proximo is None:  # Caso algum destino não seja alcançável
+            return None, float('inf')
+
+        caminho, _ = astar.search(atual, proximo)
+        caminho_total.extend(caminho if not caminho_total else caminho[1:])
+        custo_total += menor_custo
+        atual = proximo
+        nao_visitados.remove(proximo)
+
+    # Adicionar o caminho para a saída
+    caminho_para_saida, custo_saida = astar.search(atual, goal)
+    if caminho_para_saida is None:
+        return None, float('inf')
+
+    caminho_total.extend(caminho_para_saida if not caminho_total else caminho_para_saida[1:])
+    custo_total += custo_saida
+
+    return caminho_total, custo_total
 
 def mostrar_opcoes_iniciais():
     pygame.init()
@@ -84,57 +212,11 @@ def mostrar_opcoes_iniciais():
 
                 elif verificar_clique_botao(pos_mouse, (largura - 250, altura - 60), (200, 50)):
                     try:
-                        mapa = carregar_mapa_txt("mapa.txt")
+                        mapa = carregar_mapa_de_arquivo("mapa.txt")
                         return mapa, True
                     except FileNotFoundError:
                         print("Erro: Arquivo 'mapa.txt' não encontrado.")
                         return [[0 for _ in range(42)] for _ in range(42)], False
-
-def animar_caminho(tela, mapa, caminho, tamanho_celula, start, amigos, saida, delay=0.1):
-    custo_acumulado = 0
-    fonte = pygame.font.Font(None, 36)
-
-    # Tempo inicial da animação
-    tempo_inicio = pygame.time.get_ticks()
-    i = 0
-
-    while i < len(caminho):
-        for evento in pygame.event.get():
-            if evento.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
-
-        tempo_atual = pygame.time.get_ticks()
-        if tempo_atual - tempo_inicio >= delay * 1000:
-            passo = caminho[i]
-            custo_acumulado += AStar(mapa).custo_terreno(passo)
-
-            desenhar_mapa(tela, mapa, tamanho_celula, start, amigos, saida)
-            pygame.draw.rect(tela, YELLOW, (passo[1] * tamanho_celula, passo[0] * tamanho_celula, tamanho_celula, tamanho_celula))
-
-            pygame.draw.rect(tela, GRAY, (10, 850, 400, 40))
-            texto_custo = fonte.render(f"Custo acumulado: {custo_acumulado}", True, BLACK)
-            tela.blit(texto_custo, (10, 850))
-
-            pygame.display.flip()
-
-            i += 1
-            tempo_inicio = pygame.time.get_ticks()
-
-def desenhar_mapa(tela, mapa, tamanho_celula, start, amigos, saida):
-    linhas, colunas = len(mapa), len(mapa[0])
-    for linha in range(linhas):
-        for coluna in range(colunas):
-            cor, _ = TERRENOS[mapa[linha][coluna]]
-            pygame.draw.rect(tela, cor, (coluna * tamanho_celula, linha * tamanho_celula, tamanho_celula, tamanho_celula))
-            pygame.draw.rect(tela, GRAY, (coluna * tamanho_celula, linha * tamanho_celula, tamanho_celula, tamanho_celula), 1)
-
-    if start:
-        pygame.draw.rect(tela, GREEN, (start[1] * tamanho_celula, start[0] * tamanho_celula, tamanho_celula, tamanho_celula))
-    for amigo in amigos:
-        pygame.draw.rect(tela, CYAN, (amigo[1] * tamanho_celula, amigo[0] * tamanho_celula, tamanho_celula, tamanho_celula))
-    if saida:
-        pygame.draw.rect(tela, ORANGE, (saida[1] * tamanho_celula, saida[0] * tamanho_celula, tamanho_celula, tamanho_celula))
 
 def mostrar_custo(tela, custo_total, largura):
     fonte = pygame.font.Font(None, 36)
@@ -158,7 +240,7 @@ def criar_interface():
     rodando = True
     tipo_atual = 0
     escolha = None
-
+    graph = criar_grafo(mapa, {0: 1, 1: 3, 2: 6, 3: 4, 4: float('inf')})
     
     while rodando:
         tela.fill(GRAY)
@@ -172,14 +254,19 @@ def criar_interface():
                 x, y = evento.pos
                 if verificar_clique_botao(evento.pos, (largura-180, 890), (100, 40)):
                     mapa = [[0 for _ in range(colunas)] for _ in range(linhas)]
+                    graph = criar_grafo(mapa, {0: 1, 1: 3, 2: 6, 3: 4, 4: float('inf')})
                     caminho, custo_total = None, None
+                    escolha = None
 
                 elif verificar_clique_botao(evento.pos, (30, 890), (150, 40)):
                     criar_interface()
+                    escolha = None
                 
                 elif verificar_clique_botao(evento.pos, (170, 890), (200, 40)):
-                    mapa = carregar_mapa_txt("mapa.txt")
-                    caminho, custo_total = [], None
+                    mapa = carregar_mapa_de_arquivo("mapa.txt")
+                    graph = criar_grafo(mapa, {0: 1, 1: 3, 2: 6, 3: 4, 4: float('inf')})
+                    caminho, custo_total = None, None
+                    escolha = None
                 
                 elif verificar_clique_botao(evento.pos, (400, 890), (220, 40)):
                     background = pygame.image.load("imgs/image6.webp")
@@ -204,15 +291,16 @@ def criar_interface():
                                 elif verificar_clique_botao(evento_prompt.pos, ((largura-300)//2, (altura-100)//2), (300, 50)):
                                     escolha = "heurística"
                                 elif verificar_clique_botao(evento_prompt.pos, ((largura-300)//2, (altura+50)//2), (300, 50)):
-                                    escolha = None
+                                    escolha = "back"
+                                    
 
                     tela.blit(background, (0, 0))
                     if escolha == "permutações":
-                        caminho, custo_total = calcular_melhor_rota(mapa, amigos, start, saida)
+                        caminho, custo_total = calcular_melhor_rota(graph, amigos, start, saida)
                     elif escolha == "heurística":
-                        caminho, custo_total = calcular_heuristica_vizinho_mais_proximo(mapa, amigos, start, saida)
+                        caminho, custo_total = calcular_heuristica_vizinho_mais_proximo(graph, amigos, start, saida)
 
-                    if caminho is not None:
+                    if caminho is not None and custo_total != float('inf'):
                         desenhar_botao(tela, "Animar célula por célula", ((largura-350)//2,(altura-100)//2), (350, 40), WHITE, BLACK)
                         desenhar_botao(tela, "Mostrar o caminho direto", ((largura-350)//2,(altura)//2), (350, 40), WHITE, BLACK)
                         pygame.display.flip()
@@ -230,32 +318,33 @@ def criar_interface():
                                     elif verificar_clique_botao(evento_prompt.pos, ((largura-350)//2,(altura)//2), (350, 40)):
                                         escolha_visualizacao = "direto"
 
-                        caminho, custo_total = calcular_melhor_rota(mapa, amigos, start, saida)
+                        caminho, custo_total = calcular_melhor_rota(graph, amigos, start, saida)
 
                         if escolha_visualizacao == "animar":
                             tela.fill(GRAY)
-                            animar_caminho(tela, mapa, caminho, tamanho_celula, start, amigos, saida)
+                            animar_caminho(tela, mapa, caminho, start, amigos, saida)
 
                 # Verifica clique dentro do mapa
                 elif y < 840:
-                    coluna = x // tamanho_celula
-                    linha = y // tamanho_celula
+                    coluna = x // TAMANHO_CELULA
+                    linha = y // TAMANHO_CELULA
                     if evento.button == 1:  # Botão esquerdo
                         mapa[linha][coluna] = tipo_atual
+                        graph = criar_grafo(mapa, {0: 1, 1: 3, 2: 6, 3: 4, 4: float('inf')})
 
             elif evento.type == pygame.KEYDOWN:
                 if pygame.K_0 <= evento.key <= pygame.K_4:
                     tipo_atual = evento.key - pygame.K_0
 
-        desenhar_mapa(tela, mapa, tamanho_celula, start, amigos, saida)
-        if caminho is None and escolha is not None:
+        desenhar_mapa(tela, mapa, start, amigos, saida)
+        if (caminho is None or custo_total == float('inf')) and escolha is not None and escolha != "back":
             fonte = pygame.font.Font(None, 36)
             texto = fonte.render("Não foi possível encontrar um caminho", True, RED)
             tela.blit(texto, (largura - texto.get_width() - 10, 850))
 
         if caminho and custo_total is not None:
             for passo in caminho:
-                pygame.draw.rect(tela, YELLOW, (passo[1] * tamanho_celula, passo[0] * tamanho_celula, tamanho_celula, tamanho_celula))
+                pygame.draw.rect(tela, YELLOW, (passo[1] * TAMANHO_CELULA, passo[0] * tamanho_celula, tamanho_celula, tamanho_celula))
 
             mostrar_custo(tela, custo_total, largura)
 
@@ -267,7 +356,6 @@ def criar_interface():
         desenhar_botao(tela, "Carregar Mapa", (170, 890), (200, 40), PURPLE, WHITE)
         desenhar_botao(tela, "Calcular Caminho", (400, 890), (220, 40), RED, WHITE)
         desenhar_botao(tela, "Reset", (largura-180, 890), (150, 40), ORANGE, WHITE)
-
 
         pygame.display.flip()
     
