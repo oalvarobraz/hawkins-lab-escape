@@ -1,33 +1,7 @@
 from aStar import AStar
 from itertools import permutations
+from graph import Graph
 
-
-# Função para calcular o melhor roteiro entre múltiplos destinos
-def calcular_melhor_rota(mapa, pontos, eleven):
-    astar = AStar(mapa)
-    melhor_custo = float('inf')
-    melhor_caminho = []
-    start = eleven
-
-    for ordem in permutations(pontos):
-        custo_total = 0
-        caminho_total = []
-
-        for i in range(1, len(ordem)):
-            goal = ordem[i]
-            caminho, custo = astar.buscar(start, goal)
-            if caminho is None:
-                custo_total = float('inf')
-                break
-            custo_total += custo
-            caminho_total.extend(caminho if not caminho_total else caminho[1:])
-            start = goal
-
-        if custo_total < melhor_custo:
-            melhor_custo = custo_total
-            melhor_caminho = caminho_total
-
-    return melhor_caminho, melhor_custo
 
 # Função para exibir o mapa no console
 def exibir_mapa(mapa, caminho):
@@ -43,81 +17,118 @@ def exibir_mapa(mapa, caminho):
 
 
 def carregar_mapa_de_arquivo(caminho_arquivo):
-    simbolos_para_valores = {
-        '.': 0,  # Piso seco
-        '~': 1,  # Piso molhado
-        '!': 2,  # Fiação exposta
-        '=': 3,  # Porta
-        '#': 4,  # Parede
-        'E': 5,  # Eleven (posição inicial)
-        'A': 6,  # Amigos (Denver, Mike, Lucas e Will)
-        'S': 7   # Saída
-    }
-    
     with open(caminho_arquivo, 'r') as f:
         linhas = f.readlines()
     
-    mapa = [[simbolos_para_valores[char] for char in linha.strip()] for linha in linhas]
+    # Converte cada linha do arquivo em uma lista de inteiros
+    mapa = [[int(char) for char in linha.split()] for linha in linhas]
     return mapa
 
+def criar_grafo(mapa, custos):
+    # Cria o grafo com base no mapa e nos custos
+    graph = Graph(weight=custos)
+    
+    # Adiciona arestas ao grafo com base no mapa
+    for i in range(len(mapa)):
+        for j in range(len(mapa[i])):
+            node = (i, j)
+            graph.add_node(node)
+            for di, dj in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+                ni, nj = i + di, j + dj
+                if 0 <= ni < len(mapa) and 0 <= nj < len(mapa[0]):
+                    neighbor = (ni, nj)
+                    graph.add_directed_edge(node, neighbor, custos[mapa[ni][nj]])   
+    return graph
 
-def encontrar_posicoes(mapa, simbolo):
-    posicoes = []
-    for i, linha in enumerate(mapa):
-        for j, char in enumerate(linha):
-            if char == simbolo:
-                posicoes.append((i, j))
-    return posicoes
+def calcular_melhor_rota(graph, pontos, start, goal, search_algorithm=AStar):
+    astar = search_algorithm(graph)
+    melhor_custo = float('inf')
+    melhor_caminho = []
+
+    for ordem in permutations(pontos):
+        custo_total = 0
+        caminho_total = []
+
+        atual = start
+        for destino in ordem:
+            caminho, custo = astar.search(atual, destino)
+            if caminho is None:
+                custo_total = float('inf')
+                break
+
+            custo_total += custo
+            caminho_total.extend(caminho if not caminho_total else caminho[1:])
+            atual = destino
+
+        caminho_para_saida, custo_saida = astar.search(atual, goal)
+        if caminho_para_saida is None:
+            custo_total = float('inf')
+        else:
+            custo_total += custo_saida
+            caminho_total.extend(caminho_para_saida if not caminho_total else caminho_para_saida[1:])
+
+        if custo_total < melhor_custo:
+            melhor_custo = custo_total
+            melhor_caminho = caminho_total
+
+    return melhor_caminho, melhor_custo
+
+def calcular_heuristica_vizinho_mais_proximo(graph, pontos, start, goal, search_algorithm=AStar):
+    astar = search_algorithm(graph)
+    custo_total = 0
+    caminho_total = []
+    nao_visitados = set(pontos)
+    atual = start
+
+    while nao_visitados:
+        proximo, menor_custo = None, float('inf')
+
+        for destino in nao_visitados:
+            _, custo = astar.search(atual, destino)
+            if custo < menor_custo:
+                menor_custo = custo
+                proximo = destino
+
+        if proximo is None:  # Caso algum destino não seja alcançável
+            return None, float('inf')
+
+        caminho, _ = astar.search(atual, proximo)
+        caminho_total.extend(caminho if not caminho_total else caminho[1:])
+        custo_total += menor_custo
+        atual = proximo
+        nao_visitados.remove(proximo)
+
+    # Adicionar o caminho para a saída
+    caminho_para_saida, custo_saida = astar.search(atual, goal)
+    if caminho_para_saida is None:
+        return None, float('inf')
+
+    caminho_total.extend(caminho_para_saida if not caminho_total else caminho_para_saida[1:])
+    custo_total += custo_saida
+
+    return caminho_total, custo_total
+
 
 
 mapa = carregar_mapa_de_arquivo('mapa.txt')
-amigos = encontrar_posicoes(mapa, 6)
-eleven = encontrar_posicoes(mapa, 5)[0]
-saida = encontrar_posicoes(mapa, 7)[0]
-pontos = amigos + [saida]
 
-print(pontos)
+eleven = (6, 40)
+amigos = [(5, 7), (17, 37), (20, 10), (30, 11)]
+saida = (41, 40)
 
+custos = {
+    0: 1,  # Piso seco
+    1: 3,  # Piso molhado
+    2: 6,  # Fiação exposta
+    3: 4,  # Porta
+    4: float('inf')  # Parede
+}
 
+graph = criar_grafo(mapa, custos)
 
+caminho, custo = calcular_melhor_rota(graph, amigos, eleven, saida)
 
+print("Caminho encontrado:")
+exibir_mapa(mapa, caminho)
+print(f"Custo total: {custo}")
 
-# # Exemplo de mapa (matriz 42x42 simplificada)
-# mapa = [[0 for _ in range(42)] for _ in range(42)]
-
-# # Definir áreas com diferentes terrenos
-# # Definindo as pares
-# for i in range(42):
-#     mapa[i][0] = 4
-#     mapa[i][41] = 4
-#     mapa[0][i] = 4
-#     mapa[41][i] = 4
-# # Piso molhado
-# mapa[2][6] = 1
-# mapa[4][7] = 1
-# mapa[2][8] = 1
-# mapa[3][8] = 1
-# mapa[4][8] = 1
-# mapa[3][14] = 1
-# mapa[4][14] = 1
-# mapa[5][14] = 1
-# mapa[10][10] = 1
-# # Fiação exposta
-# mapa[20][20] = 2
-# # Porta
-# mapa[30][30] = 3
-# # Parede
-# mapa[15][15] = 4
-
-# # Posições iniciais e destinos
-# start = (6, 40)  # Posição inicial de Eleven
-# amigos = [(5, 7), (17, 37), (19, 10), (30, 11)] # Denver, Mike, Lucas e Will
-# saida = (41, 40)
-
-# # Rota completa
-# pontos = [start] + amigos + [saida]
-# caminho, custo = calcular_melhor_rota(mapa, pontos)
-
-# print("Caminho encontrado:")
-# exibir_mapa(mapa, caminho)
-# print(f"Custo total: {custo}")
