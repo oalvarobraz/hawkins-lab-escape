@@ -259,15 +259,14 @@ def criar_interface():
 
             mostrar_custo(tela, custo_total, largura)
 
-        # Exibir o tipo de terreno selecionado
         fonte = pygame.font.Font(None, 36)
         texto = fonte.render(f"Terreno Atual: {TERRENOS[tipo_atual][1]} (Tecla {tipo_atual})", True, BLACK)
         tela.blit(texto, (10, 850))
 
-        desenhar_botao(tela, "Menu", (30, 890), (100, 40), BLUE, WHITE)  # Botão "Reset"
-        desenhar_botao(tela, "Carregar Mapa", (170, 890), (200, 40), PURPLE, WHITE)  # Botão "Carregar Mapa"
-        desenhar_botao(tela, "Calcular Caminho", (400, 890), (220, 40), RED, WHITE)  # Botão "Calcular Caminho" ajustado
-        desenhar_botao(tela, "Reset", (largura-180, 890), (150, 40), ORANGE, WHITE)  # Botão "Menu"
+        desenhar_botao(tela, "Menu", (30, 890), (100, 40), BLUE, WHITE) 
+        desenhar_botao(tela, "Carregar Mapa", (170, 890), (200, 40), PURPLE, WHITE)
+        desenhar_botao(tela, "Calcular Caminho", (400, 890), (220, 40), RED, WHITE)
+        desenhar_botao(tela, "Reset", (largura-180, 890), (150, 40), ORANGE, WHITE)
 
 
         pygame.display.flip()

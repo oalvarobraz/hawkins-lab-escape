@@ -28,12 +28,12 @@ class AStar:
         return vizinhos
 
     def buscar(self, start, goal):
-        open_list = []
+        open_list = [] # nos a serem explorados
         heapq.heappush(open_list, (0 + self.heuristica(start, goal), start))
 
         g_scores = {start: 0}
         pais = {start: None}
-        closed_list = set()
+        closed_list = set() # nos já explorados
 
         while open_list:
             _, atual = heapq.heappop(open_list)
@@ -52,7 +52,7 @@ class AStar:
 
                 g_novo = g_scores[atual] + self.custo_terreno(vizinho)
 
-                if vizinho not in g_scores or g_novo < g_scores[vizinho]:
+                if vizinho not in g_scores or g_novo < g_scores[vizinho]: # Se o vizinho não está g_scores iy se o novo custo é menor que o anterior
                     g_scores[vizinho] = g_novo
                     f = g_novo + self.heuristica(vizinho, goal)
                     heapq.heappush(open_list, (f, vizinho))
