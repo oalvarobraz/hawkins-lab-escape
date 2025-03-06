@@ -1,9 +1,9 @@
 import pygame
 import sys
-import heapq
 from itertools import permutations
 from aStar import *
 from graph import Graph
+from ucs import UniformCostSearch
 
 # Cores
 WHITE = (191, 191, 191)
@@ -104,8 +104,8 @@ def animar_caminho(tela, mapa, caminho, start, amigos, saida, delay=100, custos=
         pygame.display.flip()
         pygame.time.delay(delay)
 
-def calcular_melhor_rota(graph, pontos, start, goal):
-    astar = AStar(graph)
+def calcular_melhor_rota(graph, pontos, start, goal, search_algorithm=AStar):
+    astar = search_algorithm(graph)
     melhor_custo = float('inf')
     melhor_caminho = []
 
@@ -318,7 +318,7 @@ def criar_interface():
                                     elif verificar_clique_botao(evento_prompt.pos, ((largura-350)//2,(altura)//2), (350, 40)):
                                         escolha_visualizacao = "direto"
 
-                        caminho, custo_total = calcular_melhor_rota(graph, amigos, start, saida)
+                        # caminho, custo_total = calcular_melhor_rota(graph, amigos, start, saida, SimulatedAnnealing)
 
                         if escolha_visualizacao == "animar":
                             tela.fill(GRAY)
