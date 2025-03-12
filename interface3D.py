@@ -117,7 +117,7 @@ graph = criar_grafo(mapa, custos)
 personagem_eleven = Entity(model='cube', color=color.red, scale=(0.5, 1, 0.5), position=(eleven[1], 0.5, -eleven[0]))
 personagens_amigos = [Entity(model='cube', color=color.green, scale=(0.5, 1, 0.5), position=(amigo[1], 0.5, -amigo[0])) for amigo in amigos]
 
-texto_custo = Text(text="Custo do caminho: 0.00", position=(-0.8, 0.4), scale=2, background=True)
+texto_custo = Text(text="Custo do caminho: 0.00", position=(-0.8, 0.4), scale=1, background=True)
 
 caminho = None
 custo_total = 0
@@ -187,14 +187,37 @@ botao_calcular.on_click = calcular_e_mover
 botao_editar = Button(text="Editar Mapa", color=color.orange, scale=(0.3, 0.1), position=(0, -0.45))
 botao_editar.on_click = alternar_modo_edicao
 
+CAMERA_MODES = {
+    'FIXA': 'fixa',
+    'TERCEIRA_PESSOA': 'terceira_pessoa'
+}
+
+camera_mode = CAMERA_MODES['TERCEIRA_PESSOA']
+
+def alternar_camera():
+    global camera_mode
+    if camera_mode == CAMERA_MODES['FIXA']:
+        camera_mode = CAMERA_MODES['TERCEIRA_PESSOA']
+    else:
+        camera_mode = CAMERA_MODES['FIXA']
+
 def update():
+    global camera_mode
+
     if modo_edicao:
         editar_mapa()
         mudar_tipo_piso()
     else:
-        # Mantém a câmera seguindo o personagem no modo normal
-        alvo_x, alvo_z = personagem_eleven.x, personagem_eleven.z
-        camera.position = lerp(camera.position, (alvo_x, 10, alvo_z - 15), 0.1)
-        camera.rotation_x = 30
+        if camera_mode == CAMERA_MODES['FIXA']:
+            camera.position = (len(mapa[0]) // 2, 150, -len(mapa) // 2)
+            camera.rotation_x = 90
+        elif camera_mode == CAMERA_MODES['TERCEIRA_PESSOA']:
+            alvo_x, alvo_z = personagem_eleven.x, personagem_eleven.z
+            camera.position = lerp(camera.position, (alvo_x, 10, alvo_z - 15), 0.1)
+            camera.rotation_x = 30
+
+    if held_keys['c']:
+        alternar_camera()
+        held_keys['c'] = False
 
 app.run()
