@@ -119,6 +119,13 @@ personagens_amigos = [Entity(model='cube', color=color.green, scale=(0.5, 1, 0.5
 
 texto_custo = Text(text="Custo do caminho: 0.00", position=(-0.8, 0.4), scale=1, background=True)
 
+texto_ajuda = Text(
+    text="[C] Trocar câmera | [0-4] Selecionar piso | [E] Editar mapa",
+    position=(-0.8, -0.45),
+    scale=0.7,
+    background=True
+)
+
 caminho = None
 custo_total = 0
 botao_calcular = None
@@ -181,10 +188,10 @@ def mudar_tipo_piso():
     elif held_keys['4']:
         tipo_piso_selecionado = 4  # Parede
 
-botao_calcular = Button(text="Calcular Caminho", color=color.blue, scale=(0.3, 0.1), position=(0, -0.3))
+botao_calcular = Button(text="Calcular Caminho", color=color.blue, scale=(0.3, 0.1), position=(-0.1, -0.43))
 botao_calcular.on_click = calcular_e_mover
 
-botao_editar = Button(text="Editar Mapa", color=color.orange, scale=(0.3, 0.1), position=(0, -0.45))
+botao_editar = Button(text="Editar Mapa", color=color.orange, scale=(0.3, 0.1), position=(0.25, -0.43))
 botao_editar.on_click = alternar_modo_edicao
 
 CAMERA_MODES = {
@@ -219,5 +226,6 @@ def update():
     if held_keys['c']:
         alternar_camera()
         held_keys['c'] = False
-
+    elif held_keys['e']:
+        alternar_modo_edicao()
 app.run()
