@@ -38,7 +38,7 @@ def calcular_melhor_rota(graph, pontos, start, goal, search_algorithm=AStar):
                 menor_custo = custo
                 proximo = destino
 
-        if proximo is None:  # Caso algum destino não seja alcançável
+        if proximo is None:
             return None, float('inf')
 
         caminho, _ = astar.search(atual, proximo)
@@ -47,7 +47,6 @@ def calcular_melhor_rota(graph, pontos, start, goal, search_algorithm=AStar):
         atual = proximo
         nao_visitados.remove(proximo)
 
-    # Adicionar o caminho para a saída
     caminho_para_saida, custo_saida = astar.search(atual, goal)
     if caminho_para_saida is None:
         return None, float('inf')
@@ -60,7 +59,6 @@ def calcular_melhor_rota(graph, pontos, start, goal, search_algorithm=AStar):
 def mover_personagem(personagem, caminho, custo_total, texto_custo, graph, caminho_total):
     if caminho:
         pos = caminho.pop(0)
-        print(f"pos: {pos}")
         personagem.position = (pos[1], 0.5, -pos[0])
 
         custo_acumulado = 0
@@ -72,7 +70,6 @@ def mover_personagem(personagem, caminho, custo_total, texto_custo, graph, camin
 
         invoke(mover_personagem, personagem, caminho, custo_total, texto_custo, graph, caminho_total, delay=0.4)
 
-# Configuração do Ursina
 app = Ursina()
 
 cores_piso = {
@@ -88,13 +85,18 @@ if mapa is None:
     app.quit()
 
 labirinto = Entity()
+piso_entities = []
+
 for i in range(len(mapa)):
+    linha_entities = []
     for j in range(len(mapa[i])):
         tipo_piso = mapa[i][j]
         cor = cores_piso.get(tipo_piso, color.gray)
-        piso = Entity(model='cube', color=cor, scale=(1, 0.1, 1), position=(j, 0, -i), parent=labirinto)
+        piso = Entity(model='cube', color=cor, scale=(1, 0.1, 1), position=(j, 0, -i), parent=labirinto, collider='box')
         if tipo_piso == 4:
             parede = Entity(model='cube', color=color.black, scale=(1, 1, 1), position=(j, 0.5, -i), parent=labirinto)
+        linha_entities.append(piso)
+    piso_entities.append(linha_entities)
 
 # Posições iniciais
 eleven = (6, 40)
@@ -119,25 +121,80 @@ texto_custo = Text(text="Custo do caminho: 0.00", position=(-0.8, 0.4), scale=2,
 
 caminho = None
 custo_total = 0
-botao = None
+botao_calcular = None
+botao_editar = None
+modo_edicao = False
+tipo_piso_selecionado = 0
 
-# Função para calcular o caminho e iniciar o movimento
 def calcular_e_mover():
-    global caminho, custo_total, botao
+    global caminho, custo_total, botao_calcular
     caminho, custo_total = calcular_melhor_rota(graph, amigos, eleven, saida)
     if caminho:
         mover_personagem(personagem_eleven, caminho.copy(), custo_total, texto_custo, graph, caminho)
     # Remove o botão da cena após o clique
-    if botao:
-        destroy(botao)
-        botao = None
+    if botao_calcular:
+        destroy(botao_calcular)
+        botao_calcular = None
+        destroy(botao_editar)
 
-botao = Button(text="Calcular Caminho", color=color.blue, scale=(0.3, 0.1), position=(0, -0.3))
-botao.on_click = calcular_e_mover
+def alternar_modo_edicao():
+    global modo_edicao, botao_editar
+    modo_edicao = not modo_edicao
+    if modo_edicao:
+        botao_editar.text = "Sair do Modo Edição"
+        camera.position = (len(mapa[0]) // 2, 150, -len(mapa) // 2)  # Centraliza a câmera
+        camera.rotation_x = 90  # Visão de cima
+    else:
+        botao_editar.text = "Editar Mapa"
+        camera.rotation_x = 30
+
+def editar_mapa():
+    global graph
+    if modo_edicao and mouse.left:
+        if mouse.hovered_entity in [piso for linha in piso_entities for piso in linha]:
+            i = int(-mouse.hovered_entity.z)
+            j = int(mouse.hovered_entity.x)
+
+            mapa[i][j] = tipo_piso_selecionado
+            mouse.hovered_entity.color = cores_piso.get(tipo_piso_selecionado, color.gray)
+
+            for child in labirinto.children:
+                if child.position == (j, 0.5, -i) and isinstance(child, Entity):
+                    destroy(child)
+
+            if tipo_piso_selecionado == 4:
+                parede = Entity(model='cube', color=color.black, scale=(1, 1, 1), position=(j, 0.5, -i), parent=labirinto)
+            
+            graph = criar_grafo(mapa, custos)
+            
+
+def mudar_tipo_piso():
+    global tipo_piso_selecionado
+    if held_keys['0']:
+        tipo_piso_selecionado = 0  # Piso seco
+    elif held_keys['1']:
+        tipo_piso_selecionado = 1  # Piso molhado
+    elif held_keys['2']:
+        tipo_piso_selecionado = 2  # Fiação exposta
+    elif held_keys['3']:
+        tipo_piso_selecionado = 3  # Porta
+    elif held_keys['4']:
+        tipo_piso_selecionado = 4  # Parede
+
+botao_calcular = Button(text="Calcular Caminho", color=color.blue, scale=(0.3, 0.1), position=(0, -0.3))
+botao_calcular.on_click = calcular_e_mover
+
+botao_editar = Button(text="Editar Mapa", color=color.orange, scale=(0.3, 0.1), position=(0, -0.45))
+botao_editar.on_click = alternar_modo_edicao
 
 def update():
-    alvo_x, alvo_z = personagem_eleven.x, personagem_eleven.z
-    camera.position = lerp(camera.position, (alvo_x, 10, alvo_z - 15), 0.1)
-    camera.rotation_x = 30
+    if modo_edicao:
+        editar_mapa()
+        mudar_tipo_piso()
+    else:
+        # Mantém a câmera seguindo o personagem no modo normal
+        alvo_x, alvo_z = personagem_eleven.x, personagem_eleven.z
+        camera.position = lerp(camera.position, (alvo_x, 10, alvo_z - 15), 0.1)
+        camera.rotation_x = 30
 
 app.run()
