@@ -77,7 +77,7 @@ def mover_personagem(personagem, caminho, custo_total, texto_custo, graph, camin
         # Atualiza o custo acumulado na tela
         texto_custo.text = f"Custo do caminho: {custo_acumulado:.2f}"
 
-        invoke(mover_personagem, personagem, caminho, custo_total, texto_custo, graph, caminho_total, delay=0.4)
+        invoke(mover_personagem, personagem, caminho, custo_total, texto_custo, graph, caminho_total, delay=0.25)
 
 app = Ursina()
 
@@ -124,7 +124,26 @@ custos = {
 graph = criar_grafo(mapa, custos)
 
 personagem_eleven = Entity(model='models_compressed/eleven.glb', scale=(1, 1, 1), position=(eleven[1], 0.09, -eleven[0]), rotation_y=180)
-personagens_amigos = [Entity(model='cube', color=color.green, scale=(0.5, 1, 0.5), position=(amigo[1], 0.5, -amigo[0])) for amigo in amigos]
+personagens_amigos = []
+for i, amigo in enumerate(amigos):
+    if i == 0:
+        model = 'models_compressed/dustin.glb'
+    elif i == 1:
+        model = 'models_compressed/mike.glb'
+    elif i == 2:
+        model = 'models_compressed/lucas.glb'
+    elif i == 3:
+        model = 'models_compressed/will.glb'
+    else:
+        model = 'cube'
+
+    personagem = Entity(
+        model=model,
+        scale=(0.8, 0.8, 0.8),
+        position=(amigo[1], 0.09, -amigo[0]),
+        rotation_y = 90 if i == 1 else 0
+    )
+    personagens_amigos.append(personagem)
 
 texto_custo = Text(text="Custo do caminho: 0.00", position=(-0.8, 0.4), scale=1, background=True)
 
