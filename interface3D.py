@@ -58,14 +58,23 @@ def calcular_melhor_rota(graph, pontos, start, goal, search_algorithm=AStar):
 
 def mover_personagem(personagem, caminho, custo_total, texto_custo, graph, caminho_total):
     if caminho:
+        pos_atual = (personagem.position.x, -personagem.position.z)
         pos = caminho.pop(0)
-        personagem.position = (pos[1], 0.5, -pos[0])
+
+        direcao_x = pos[1] - pos_atual[0]
+        direcao_z = -(pos[0] - pos_atual[1])
+
+        angulo = math.degrees(math.atan2(direcao_z, direcao_x))
+
+        personagem.rotation_y = -angulo + 270
+
+        personagem.position = (pos[1], personagem.position.y, -pos[0])
 
         custo_acumulado = 0
         for i in range(len(caminho_total) - len(caminho) - 1):
             custo_acumulado += graph.get_weight(caminho_total[i], caminho_total[i + 1])
 
-        # Atualizar o custo acumulado na tela
+        # Atualiza o custo acumulado na tela
         texto_custo.text = f"Custo do caminho: {custo_acumulado:.2f}"
 
         invoke(mover_personagem, personagem, caminho, custo_total, texto_custo, graph, caminho_total, delay=0.4)
@@ -114,13 +123,13 @@ custos = {
 
 graph = criar_grafo(mapa, custos)
 
-personagem_eleven = Entity(model='cube', color=color.red, scale=(0.5, 1, 0.5), position=(eleven[1], 0.5, -eleven[0]))
+personagem_eleven = Entity(model='models_compressed/eleven.glb', scale=(1, 1, 1), position=(eleven[1], 0.09, -eleven[0]), rotation_y=180)
 personagens_amigos = [Entity(model='cube', color=color.green, scale=(0.5, 1, 0.5), position=(amigo[1], 0.5, -amigo[0])) for amigo in amigos]
 
 texto_custo = Text(text="Custo do caminho: 0.00", position=(-0.8, 0.4), scale=1, background=True)
 
 texto_ajuda = Text(
-    text="[C] Trocar câmera | [0-4] Selecionar piso | [E] Editar mapa",
+    text="[C] Trocar câmera | [0-4] Selecionar piso | [E] Editar mapa | [F5] Reset code",
     position=(-0.8, -0.45),
     scale=0.7,
     background=True
@@ -188,10 +197,10 @@ def mudar_tipo_piso():
     elif held_keys['4']:
         tipo_piso_selecionado = 4  # Parede
 
-botao_calcular = Button(text="Calcular Caminho", color=color.blue, scale=(0.3, 0.1), position=(-0.1, -0.43))
+botao_calcular = Button(text="Calcular Caminho", color=color.blue, scale=(0.3, 0.1), position=(0, -0.43))
 botao_calcular.on_click = calcular_e_mover
 
-botao_editar = Button(text="Editar Mapa", color=color.orange, scale=(0.3, 0.1), position=(0.25, -0.43))
+botao_editar = Button(text="Editar Mapa", color=color.orange, scale=(0.3, 0.1), position=(0.35, -0.43))
 botao_editar.on_click = alternar_modo_edicao
 
 CAMERA_MODES = {
