@@ -1,7 +1,6 @@
 from aStar import AStar
 from itertools import permutations
 from graph import Graph
-from ucs import UniformCostSearch as Uni
 
 # Função para exibir o mapa no console
 def exibir_mapa(mapa, caminho):
@@ -126,7 +125,7 @@ custos = {
 
 graph = criar_grafo(mapa, custos)
 
-caminho, custo = calcular_melhor_rota(graph, amigos, eleven, saida, Uni)
+caminho, custo = calcular_melhor_rota(graph, amigos, eleven, saida)
 
 print("Caminho encontrado:")
 exibir_mapa(mapa, caminho)
