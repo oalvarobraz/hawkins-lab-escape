@@ -1,7 +1,6 @@
 from ursina import *
 from aStar import AStar
 from graph import Graph
-from ucs import UniformCostSearch as Uni
 
 def carregar_mapa_de_arquivo(caminho_arquivo):
     with open(caminho_arquivo, 'r') as f:
@@ -56,28 +55,28 @@ def calcular_melhor_rota(graph, pontos, start, goal, search_algorithm=AStar):
 
     return caminho_total, custo_total
 
-def mover_personagem(personagem, caminho, custo_total, texto_custo, graph, caminho_total):
-    if caminho:
-        pos_atual = (personagem.position.x, -personagem.position.z)
-        pos = caminho.pop(0)
+# def mover_personagem(personagem, caminho, custo_total, texto_custo, graph, caminho_total):
+#     if caminho:
+#         pos_atual = (personagem.position.x, -personagem.position.z)
+#         pos = caminho.pop(0)
 
-        direcao_x = pos[1] - pos_atual[0]
-        direcao_z = -(pos[0] - pos_atual[1])
+#         direcao_x = pos[1] - pos_atual[0]
+#         direcao_z = -(pos[0] - pos_atual[1])
 
-        angulo = math.degrees(math.atan2(direcao_z, direcao_x))
+#         angulo = math.degrees(math.atan2(direcao_z, direcao_x))
 
-        personagem.rotation_y = -angulo + 270
+#         personagem.rotation_y = -angulo + 270
 
-        personagem.position = (pos[1], personagem.position.y, -pos[0])
+#         personagem.position = (pos[1], personagem.position.y, -pos[0])
 
-        custo_acumulado = 0
-        for i in range(len(caminho_total) - len(caminho) - 1):
-            custo_acumulado += graph.get_weight(caminho_total[i], caminho_total[i + 1])
+#         custo_acumulado = 0
+#         for i in range(len(caminho_total) - len(caminho) - 1):
+#             custo_acumulado += graph.get_weight(caminho_total[i], caminho_total[i + 1])
 
-        # Atualiza o custo acumulado na tela
-        texto_custo.text = f"Custo do caminho: {custo_acumulado:.2f}"
+#         # Atualiza o custo acumulado na tela
+#         texto_custo.text = f"Custo do caminho: {custo_acumulado:.2f}"
 
-        invoke(mover_personagem, personagem, caminho, custo_total, texto_custo, graph, caminho_total, delay=0.25)
+#         invoke(mover_personagem, personagem, caminho, custo_total, texto_custo, graph, caminho_total, delay=0.25)
 
 app = Ursina()
 
@@ -155,6 +154,7 @@ texto_ajuda = Text(
 )
 
 caminho = None
+caminho_total = []
 custo_total = 0
 botao_calcular = None
 botao_editar = None
@@ -162,10 +162,18 @@ modo_edicao = False
 tipo_piso_selecionado = 0
 
 def calcular_e_mover():
-    global caminho, custo_total, botao_calcular
+    global caminho, custo_total, botao_calcular, caminho_total
     caminho, custo_total = calcular_melhor_rota(graph, amigos, eleven, saida)
+    print(f"Caminho: {caminho} e custo_total: {custo_total}")
     if caminho:
-        mover_personagem(personagem_eleven, caminho.copy(), custo_total, texto_custo, graph, caminho)
+        print("Entrou aqui")
+        caminho_total = caminho.copy()  # Armazena o caminho completo
+        if len(caminho) > 0:
+            caminho.pop(0)
+    elif custo_total == float('inf'):
+        print("Entrei aqui")
+        destroy(texto_custo)
+        texto_caminho = Text(text="Caminho não encontrado", position=(-0.1, 0.0), scale=1, background=True)
     # Remove o botão da cena após o clique
     if botao_calcular:
         destroy(botao_calcular)
@@ -237,7 +245,7 @@ def alternar_camera():
         camera_mode = CAMERA_MODES['FIXA']
 
 def update():
-    global camera_mode
+    global camera_mode, caminho
 
     if modo_edicao:
         editar_mapa()
@@ -256,4 +264,36 @@ def update():
         held_keys['c'] = False
     elif held_keys['e']:
         alternar_modo_edicao()
+
+    if caminho:
+        print(caminho)
+        pos_atual = (personagem_eleven.position.x, -personagem_eleven.position.z)
+        pos = caminho[0]
+
+        # Calcula a direção para o próximo ponto do caminho
+        direcao_x = pos[1] - pos_atual[0]
+        direcao_z = -(pos[0] - pos_atual[1])
+
+        # Calcula o ângulo de rotação
+        angulo = math.degrees(math.atan2(direcao_z, direcao_x))
+        personagem_eleven.rotation_y = -angulo + 270
+
+        # Move o personagem em direção ao próximo ponto
+        velocidade = 5 * time.dt  # Ajuste a velocidade conforme necessário
+        personagem_eleven.position = (
+            personagem_eleven.position.x + direcao_x * velocidade,
+            personagem_eleven.position.y,
+            personagem_eleven.position.z + direcao_z * velocidade
+        )
+
+        # Verifica se o personagem chegou ao próximo ponto
+        if abs(personagem_eleven.position.x - pos[1]) < 0.1 and abs(personagem_eleven.position.z - (-pos[0])) < 0.1:
+            caminho.pop(0)  # Remove o ponto atual do caminho
+
+        # Atualiza o custo acumulado na tela
+        custo_acumulado = 0
+        for i in range(len(caminho_total) - len(caminho) - 1):
+            custo_acumulado += graph.get_weight(caminho_total[i], caminho_total[i + 1])
+        texto_custo.text = f"Custo do caminho: {custo_acumulado:.2f}"
+
 app.run()

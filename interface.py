@@ -3,7 +3,6 @@ import sys
 from itertools import permutations
 from aStar import *
 from graph import Graph
-from ucs import UniformCostSearch
 
 # Cores
 WHITE = (191, 191, 191)
