@@ -55,29 +55,6 @@ def calcular_melhor_rota(graph, pontos, start, goal, search_algorithm=AStar):
 
     return caminho_total, custo_total
 
-# def mover_personagem(personagem, caminho, custo_total, texto_custo, graph, caminho_total):
-#     if caminho:
-#         pos_atual = (personagem.position.x, -personagem.position.z)
-#         pos = caminho.pop(0)
-
-#         direcao_x = pos[1] - pos_atual[0]
-#         direcao_z = -(pos[0] - pos_atual[1])
-
-#         angulo = math.degrees(math.atan2(direcao_z, direcao_x))
-
-#         personagem.rotation_y = -angulo + 270
-
-#         personagem.position = (pos[1], personagem.position.y, -pos[0])
-
-#         custo_acumulado = 0
-#         for i in range(len(caminho_total) - len(caminho) - 1):
-#             custo_acumulado += graph.get_weight(caminho_total[i], caminho_total[i + 1])
-
-#         # Atualiza o custo acumulado na tela
-#         texto_custo.text = f"Custo do caminho: {custo_acumulado:.2f}"
-
-#         invoke(mover_personagem, personagem, caminho, custo_total, texto_custo, graph, caminho_total, delay=0.25)
-
 app = Ursina()
 
 cores_piso = {
@@ -147,7 +124,7 @@ for i, amigo in enumerate(amigos):
 texto_custo = Text(text="Custo do caminho: 0.00", position=(-0.8, 0.4), scale=1, background=True)
 
 texto_ajuda = Text(
-    text="[C] Trocar câmera | [0-4] Selecionar piso | [E] Editar mapa | [F5] Reset code",
+    text="[C] Trocar câmera | [0-4] Selecionar piso | [E] Editar mapa | [F5] Reset code | [+, -] Velocidade Eleven",
     position=(-0.8, -0.45),
     scale=0.7,
     background=True
@@ -160,18 +137,16 @@ botao_calcular = None
 botao_editar = None
 modo_edicao = False
 tipo_piso_selecionado = 0
+vel = 5
 
 def calcular_e_mover():
     global caminho, custo_total, botao_calcular, caminho_total
     caminho, custo_total = calcular_melhor_rota(graph, amigos, eleven, saida)
-    print(f"Caminho: {caminho} e custo_total: {custo_total}")
     if caminho:
-        print("Entrou aqui")
         caminho_total = caminho.copy()  # Armazena o caminho completo
         if len(caminho) > 0:
             caminho.pop(0)
     elif custo_total == float('inf'):
-        print("Entrei aqui")
         destroy(texto_custo)
         texto_caminho = Text(text="Caminho não encontrado", position=(-0.1, 0.0), scale=1, background=True)
     # Remove o botão da cena após o clique
@@ -224,10 +199,10 @@ def mudar_tipo_piso():
     elif held_keys['4']:
         tipo_piso_selecionado = 4  # Parede
 
-botao_calcular = Button(text="Calcular Caminho", color=color.blue, scale=(0.3, 0.1), position=(0, -0.43))
+botao_calcular = Button(text="Calcular Caminho", color=color.blue, scale=(0.3, 0.1), position=(0.25, -0.43))
 botao_calcular.on_click = calcular_e_mover
 
-botao_editar = Button(text="Editar Mapa", color=color.orange, scale=(0.3, 0.1), position=(0.35, -0.43))
+botao_editar = Button(text="Editar Mapa", color=color.orange, scale=(0.3, 0.1), position=(0.65, -0.43))
 botao_editar.on_click = alternar_modo_edicao
 
 CAMERA_MODES = {
@@ -245,7 +220,7 @@ def alternar_camera():
         camera_mode = CAMERA_MODES['FIXA']
 
 def update():
-    global camera_mode, caminho
+    global camera_mode, caminho, vel
 
     if modo_edicao:
         editar_mapa()
@@ -262,11 +237,17 @@ def update():
     if held_keys['c']:
         alternar_camera()
         held_keys['c'] = False
-    elif held_keys['e']:
+    if held_keys['e'] and caminho is None:
         alternar_modo_edicao()
+    if held_keys['+']:
+        vel += 1
+    if held_keys['-']:
+        if vel < 3:
+            vel = 3
+        else :
+            vel -= 1
 
     if caminho:
-        print(caminho)
         pos_atual = (personagem_eleven.position.x, -personagem_eleven.position.z)
         pos = caminho[0]
 
@@ -279,7 +260,7 @@ def update():
         personagem_eleven.rotation_y = -angulo + 270
 
         # Move o personagem em direção ao próximo ponto
-        velocidade = 5 * time.dt  # Ajuste a velocidade conforme necessário
+        velocidade = vel * time.dt
         personagem_eleven.position = (
             personagem_eleven.position.x + direcao_x * velocidade,
             personagem_eleven.position.y,
