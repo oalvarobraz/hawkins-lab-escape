@@ -21,9 +21,7 @@
 - Possibilidade de configurar mapas customizados.
 - Exibição do custo total ao término da execução.
 - Representação visual simples dos movimentos no console.
-
-## Pré-requisitos
-- Linguagem de programação utilizada: Python
+- Representação visual usando o pygame e o Ursina.
 
 ## Como Executar
 1. Clone este repositório:
