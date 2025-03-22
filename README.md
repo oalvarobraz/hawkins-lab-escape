@@ -23,6 +23,12 @@
 - Representação visual simples dos movimentos no console.
 - Representação visual usando o pygame e o Ursina.
 
+## Créditos
+- Modelos 3D utilizados: [Stranger Things by YGSMOKE69 on Sketchfab](https://sketchfab.com/ygsmoke69/collections/stranger-things-9265a266e1fe4d28b7b281480b9eaad0)
+- Imagens utilizadas: 
+  - [Wallpaper do laboratório de Hawkins - WallpaperCave](https://wall.alphacoders.com/big.php?i=879366)
+  - [Imagem inspiradora de Stranger Things - Pinterest](https://pt.pinterest.com/pin/639722322106650136/)
+
 ## Como Executar
 1. Clone este repositório:
    ```bash
