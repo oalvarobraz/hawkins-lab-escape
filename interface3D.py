@@ -45,7 +45,7 @@ custos = {
 
 graph = criar_grafo(mapa, custos)
 
-personagem_eleven = Entity(model='models_compressed/eleven3D.glb', scale=(0.8, 0.8, 0.8), position=(eleven[1], 0.09, -eleven[0]), rotation_y=180)
+personagem_eleven = Entity(model='models_compressed/eleven.glb', scale=(0.8, 0.8, 0.8), position=(eleven[1], 0.09, -eleven[0]), rotation_y=180)
 personagens_amigos = []
 for i, amigo in enumerate(amigos):
     if i == 0:
